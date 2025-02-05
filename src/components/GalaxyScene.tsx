@@ -11,12 +11,16 @@ const words = [
 
 // Dusty galaxy colors
 const dustColors = [
-  new THREE.Color('#8E9196'),  // Neutral Gray
-  new THREE.Color('#1A1F2C'),  // Dark Purple
-  new THREE.Color('#403E43'),  // Charcoal Gray
-  new THREE.Color('#8A898C'),  // Medium Gray
-  new THREE.Color('#C8C8C9'),  // Light Gray
+  new THREE.Color(0x8E9196),  // Neutral Gray
+  new THREE.Color(0x1A1F2C),  // Dark Purple
+  new THREE.Color(0x403E43),  // Charcoal Gray
+  new THREE.Color(0x8A898C),  // Medium Gray
+  new THREE.Color(0xC8C8C9),  // Light Gray
 ];
+
+// Background gradient colors
+const gradientTop = new THREE.Color(0x2a0845);    // Deep Purple
+const gradientBottom = new THREE.Color(0x6441A5);  // Bright Purple
 
 const GalaxyScene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,7 +33,44 @@ const GalaxyScene = () => {
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000);
+
+    // Create gradient background
+    const vertexShader = `
+      varying vec3 vPos;
+      void main() {
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const fragmentShader = `
+      uniform vec3 colorTop;
+      uniform vec3 colorBottom;
+      varying vec3 vPos;
+      void main() {
+        float h = normalize(vPos).y;
+        gl_FragColor = vec4(mix(colorBottom, colorTop, h * 0.5 + 0.5), 1.0);
+      }
+    `;
+
+    const uniforms = {
+      colorTop: { value: gradientTop },
+      colorBottom: { value: gradientBottom },
+    };
+
+    const backgroundMaterial = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+    });
+
+    const backgroundGeometry = new THREE.PlaneGeometry(2, 2);
+    const background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+    background.position.z = -1;
+    const backgroundCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
+    const backgroundScene = new THREE.Scene();
+    backgroundScene.add(background);
+
     containerRef.current.appendChild(renderer.domElement);
 
     // Controls
@@ -49,7 +90,7 @@ const GalaxyScene = () => {
     const dustParticlesCount = 2000;
     const dustGeometry = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustParticlesCount * 3);
-    const dustColors = new Float32Array(dustParticlesCount * 3);
+    const dustColorArray = new Float32Array(dustParticlesCount * 3);
     const dustSizes = new Float32Array(dustParticlesCount);
 
     for (let i = 0; i < dustParticlesCount; i++) {
@@ -63,17 +104,17 @@ const GalaxyScene = () => {
       dustPositions[i3 + 2] = Math.sin(angle) * radius;
 
       // Random color from dustColors array
-      const color = dustColors[Math.floor(Math.random() * dustColors.length)];
-      dustColors[i3] = color.r;
-      dustColors[i3 + 1] = color.g;
-      dustColors[i3 + 2] = color.b;
+      const randomColor = dustColors[Math.floor(Math.random() * dustColors.length)];
+      dustColorArray[i3] = randomColor.r;
+      dustColorArray[i3 + 1] = randomColor.g;
+      dustColorArray[i3 + 2] = randomColor.b;
 
       // Random size for dust particles
       dustSizes[i] = Math.random() * 2;
     }
 
     dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
-    dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
+    dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColorArray, 3));
     dustGeometry.setAttribute('size', new THREE.BufferAttribute(dustSizes, 1));
 
     const dustMaterial = new THREE.PointsMaterial({
@@ -138,6 +179,11 @@ const GalaxyScene = () => {
     // Animation
     const animate = () => {
       requestAnimationFrame(animate);
+
+      // Render background
+      renderer.autoClear = false;
+      renderer.render(backgroundScene, backgroundCamera);
+      renderer.autoClear = true;
 
       // Rotate word-stars
       wordStars.forEach((star, index) => {
