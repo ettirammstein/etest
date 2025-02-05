@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const words = [
   'Stardust', 'Cosmos', 'Galaxy', 'Nebula', 'Celestial',
@@ -34,7 +34,6 @@ const GalaxyScene = () => {
 
     // Create word-stars
     const wordStars: THREE.Mesh[] = [];
-    const fontLoader = new THREE.FontLoader();
 
     // Particle system for background stars
     const starsGeometry = new THREE.BufferGeometry();
