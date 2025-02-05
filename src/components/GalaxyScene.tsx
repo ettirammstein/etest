@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -6,6 +7,15 @@ const words = [
   'Stardust', 'Cosmos', 'Galaxy', 'Nebula', 'Celestial',
   'Infinity', 'Dreams', 'Wonder', 'Mystery', 'Journey',
   'Beyond', 'Eternal', 'Stellar', 'Cosmic', 'Astral'
+];
+
+// Dusty galaxy colors
+const dustColors = [
+  new THREE.Color('#8E9196'),  // Neutral Gray
+  new THREE.Color('#1A1F2C'),  // Dark Purple
+  new THREE.Color('#403E43'),  // Charcoal Gray
+  new THREE.Color('#8A898C'),  // Medium Gray
+  new THREE.Color('#C8C8C9'),  // Light Gray
 ];
 
 const GalaxyScene = () => {
@@ -34,6 +44,48 @@ const GalaxyScene = () => {
 
     // Create word-stars
     const wordStars: THREE.Mesh[] = [];
+
+    // Create dusty galaxy background
+    const dustParticlesCount = 2000;
+    const dustGeometry = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustParticlesCount * 3);
+    const dustColors = new Float32Array(dustParticlesCount * 3);
+    const dustSizes = new Float32Array(dustParticlesCount);
+
+    for (let i = 0; i < dustParticlesCount; i++) {
+      const i3 = i * 3;
+      const radius = Math.random() * 50;
+      const angle = Math.random() * Math.PI * 2;
+      const heightSpread = (Math.random() - 0.5) * 10;
+
+      dustPositions[i3] = Math.cos(angle) * radius;
+      dustPositions[i3 + 1] = heightSpread;
+      dustPositions[i3 + 2] = Math.sin(angle) * radius;
+
+      // Random color from dustColors array
+      const color = dustColors[Math.floor(Math.random() * dustColors.length)];
+      dustColors[i3] = color.r;
+      dustColors[i3 + 1] = color.g;
+      dustColors[i3 + 2] = color.b;
+
+      // Random size for dust particles
+      dustSizes[i] = Math.random() * 2;
+    }
+
+    dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
+    dustGeometry.setAttribute('size', new THREE.BufferAttribute(dustSizes, 1));
+
+    const dustMaterial = new THREE.PointsMaterial({
+      size: 0.1,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const dustParticles = new THREE.Points(dustGeometry, dustMaterial);
+    scene.add(dustParticles);
 
     // Particle system for background stars
     const starsGeometry = new THREE.BufferGeometry();
@@ -97,6 +149,9 @@ const GalaxyScene = () => {
         star.position.y = Math.sin(angle + time * 0.2) * radius;
         star.rotation.y += 0.01;
       });
+
+      // Rotate dust particles
+      dustParticles.rotation.y += 0.0005;
 
       controls.update();
       renderer.render(scene, camera);
