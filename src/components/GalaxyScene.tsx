@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -18,9 +17,14 @@ const dustColors = [
   new THREE.Color(0xC8C8C9),  // Light Gray
 ];
 
-// Background gradient colors
-const gradientTop = new THREE.Color(0x2a0845);    // Deep Purple
-const gradientBottom = new THREE.Color(0x6441A5);  // Bright Purple
+// Background gradient colors array for animation
+const gradientColors = [
+  new THREE.Color(0x2a0845),    // Deep Purple
+  new THREE.Color(0x6441A5),    // Bright Purple
+  new THREE.Color(0xFF0080),    // Hot Pink
+  new THREE.Color(0x7928CA),    // Electric Purple
+  new THREE.Color(0x4299E1),    // Sky Blue
+];
 
 const GalaxyScene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,8 +58,8 @@ const GalaxyScene = () => {
     `;
 
     const uniforms = {
-      colorTop: { value: gradientTop },
-      colorBottom: { value: gradientBottom },
+      colorTop: { value: gradientColors[0] },
+      colorBottom: { value: gradientColors[1] },
     };
 
     const backgroundMaterial = new THREE.ShaderMaterial({
@@ -176,9 +180,34 @@ const GalaxyScene = () => {
     pointLight.position.set(10, 10, 10);
     scene.add(pointLight);
 
+    let colorIndex = 0;
+    let nextColorIndex = 1;
+    let colorTransitionProgress = 0;
+
     // Animation
     const animate = () => {
       requestAnimationFrame(animate);
+
+      // Update background rotation
+      background.rotation.x += 0.001;
+      background.rotation.y += 0.002;
+      background.rotation.z += 0.001;
+
+      // Update gradient colors
+      colorTransitionProgress += 0.005;
+      if (colorTransitionProgress >= 1) {
+        colorTransitionProgress = 0;
+        colorIndex = (colorIndex + 1) % gradientColors.length;
+        nextColorIndex = (colorIndex + 1) % gradientColors.length;
+      }
+
+      const currentTopColor = gradientColors[colorIndex].clone();
+      const nextTopColor = gradientColors[nextColorIndex].clone();
+      const currentBottomColor = gradientColors[(colorIndex + 2) % gradientColors.length].clone();
+      const nextBottomColor = gradientColors[(nextColorIndex + 2) % gradientColors.length].clone();
+
+      uniforms.colorTop.value.copy(currentTopColor.lerp(nextTopColor, colorTransitionProgress));
+      uniforms.colorBottom.value.copy(currentBottomColor.lerp(nextBottomColor, colorTransitionProgress));
 
       // Render background
       renderer.autoClear = false;
